@@ -43,6 +43,32 @@ session. [`example.md`](example.md) shows all three surfaces this way.
 
 ## Install
 
+### Paste this into your agent
+
+The agent knows which agent it is, so let it install itself:
+
+```text
+Set up ponycave100 on this machine, for the agent that you are.
+
+    git clone https://github.com/strikeout/ponycave100 ~/src/ponycave100
+
+Then read ~/src/ponycave100/README.md. Find the "Install on ..." section that
+matches you, and follow it. If no section matches you, follow "Any other
+agent". Tell me which section you used, and tell me when to restart.
+```
+
+### Or install it yourself
+
+| Host | What it takes | Verified |
+|---|---|---|
+| [Claude Code](#install-on-claude-code) | two commands | a live session |
+| [opencode](#install-on-opencode) | one file | a live session |
+| [Gemini CLI](#install-on-gemini-cli) | one settings block | the type definitions |
+| [Copilot CLI](#install-on-copilot-cli) | one file | the contract |
+| [Any other agent](#install-on-any-other-agent) | one command | a live session |
+
+Claude Code takes two commands:
+
 ```bash
 claude plugin marketplace add strikeout/ponycave100
 claude plugin install ponycave100@ponycave100 --scope user
@@ -50,10 +76,6 @@ claude plugin install ponycave100@ponycave100 --scope user
 
 Then open a new session. A hook loads at session start, so the session that
 installs the plugin does not change.
-
-opencode and Copilot CLI need one file each. Read
-[Install on opencode](#install-on-opencode) and
-[Install on Copilot CLI](#install-on-copilot-cli).
 
 ## The name, and the three rules it merges
 
@@ -195,25 +217,77 @@ subagent starts.
 **Copilot CLI drops the output of a `userPromptSubmitted` command hook**, so the
 per-turn reminder has no equivalent there. Only an SDK hook modifies a prompt.
 
-## What each host receives
+## Install on Gemini CLI
 
-| | Claude Code | opencode | Copilot CLI |
-|---|---|---|---|
-| Session rules | yes | yes, on each model call | yes |
-| Subagent rules | yes, trimmed per agent | the full block, never trimmed | yes, trimmed per agent |
-| Per-turn reminder | yes | each call repeats the rules | no |
-| Install | a plugin | one file, copied | one file, copied |
-| Verified | a live session | a live session | the contract alone |
+Gemini CLI reads the same hook envelope as Claude Code. Its `SessionStart` and
+its `BeforeAgent` events each accept `hookSpecificOutput.additionalContext`, so
+the hook needs no flag and no adapter code.
 
-The hook itself serves all three. `--host` selects the envelope, and `--kind`
-names the surface when the host sends no event name:
+Add the block from `adapters/gemini/settings.json` to the `hooks` object of
+`~/.gemini/settings.json`, and replace the placeholder with your path:
 
 ```bash
-node hooks/ponycave100.js --host=text --kind=session    # the rules, as text
+R=~/src/ponycave100        # the path you cloned to
+sed "s|__PONYCAVE100_HOOK__|$R/hooks/ponycave100.js|" "$R/adapters/gemini/settings.json"
 ```
 
-Give `--host=text` to any other agent. Append its output to that agent's
-`AGENTS.md` between two markers, and generate it again after an upgrade.
+`~/.gemini/settings.json` holds other settings, so merge the `hooks` object
+rather than overwrite the file.
+
+**The type definitions verified this, and a live session did not.** The Gemini
+installation on the author's machine fails to authenticate. The envelope comes
+from `hooks/types.d.ts` in `@google/gemini-cli-core` 0.27.3.
+
+## Install on any other agent
+
+An agent that reads an instruction file needs no hook. One command writes the
+rules into that file, between two markers:
+
+```bash
+sh ~/src/ponycave100/adapters/agents-md/install.sh ~/.codex/AGENTS.md
+```
+
+The command is idempotent. It replaces the block when the markers are present,
+and it appends the block when they are absent. Point it at whichever file your
+agent reads:
+
+| Agent | The file it reads |
+|---|---|
+| Codex CLI | `~/.codex/AGENTS.md` |
+| Cursor | `.cursor/rules/ponycave100.mdc` |
+| Aider | `CONVENTIONS.md` |
+| Amp, Droid, and other `AGENTS.md` readers | `AGENTS.md` |
+
+**Run the command again after an upgrade.** No hook runs, so the block does not
+refresh itself.
+
+**Codex CLI needs this route, and its hooks do not work for this.** Codex runs a
+`SessionStart` hook, and it drops the `additionalContext` that the hook returns.
+A live test against codex-cli 0.153.4 confirmed that: the model answered
+`UNKNOWN` for a fact that the hook had supplied.
+
+## What each host receives
+
+| | Session rules | Subagent rules | Per-turn | Verified |
+|---|---|---|---|---|
+| Claude Code | yes | yes, trimmed per agent | yes | a live session |
+| opencode | on each model call | the full block, never trimmed | each call repeats them | a live session |
+| Gemini CLI | yes | yes, through `BeforeAgent` | no | the type definitions |
+| Copilot CLI | yes | yes, trimmed per agent | no | the contract alone |
+| An instruction file | yes | yes, if the agent reads the file | no | a live session |
+
+Three hosts read a JSON envelope, and each envelope differs. One script serves
+them all: `--host` selects the envelope, and `--kind` names the surface when the
+host sends no event name.
+
+```bash
+node hooks/ponycave100.js                            # Claude Code and Gemini CLI
+node hooks/ponycave100.js --host=copilot             # Copilot CLI
+node hooks/ponycave100.js --host=text --kind=session # the rules, as plain text
+```
+
+**Codex CLI is not in the table.** It runs a hook and drops the context that the
+hook returns, so it takes the instruction-file route.
 
 ## Uninstall
 
@@ -229,6 +303,12 @@ rm ~/.config/opencode/plugins/ponycave100.js
 
 # Copilot CLI
 rm ~/.copilot/hooks/ponycave100.json
+
+# Gemini CLI — delete the ponycave100 entries from the "hooks" object
+$EDITOR ~/.gemini/settings.json
+
+# An instruction file — delete the block between the two markers
+$EDITOR ~/.codex/AGENTS.md
 ```
 
 The plugin writes one other file, and only when you change a level:
@@ -245,6 +325,8 @@ The plugin writes one other file, and only when you change a level:
 | `example.md` | each rule in use, without the plugin and with it |
 | `adapters/opencode/` | the opencode plugin, as a template |
 | `adapters/copilot/` | the Copilot CLI hook config, as a template |
+| `adapters/gemini/` | the Gemini CLI settings block, as a template |
+| `adapters/agents-md/` | one installer for any agent that reads a file |
 
 The checker needs `python3`. The hook needs `node`. Both ship with Claude Code
 on a normal developer machine.

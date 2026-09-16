@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '__PONYCAVE100_HOOK__'"
+          }
+        ]
+      }
+    ],
+    "BeforeAgent": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '__PONYCAVE100_HOOK__' --kind=subagent"
+          }
+        ]
+      }
+    ]
+  }
+}
