@@ -68,14 +68,18 @@ Write the artifact, then run the checker over it, then fix every finding it repo
 document dilutes these rules, so the last pass is the one that holds them. Deliver the artifact
 only after the checker reports a clean run, or after you can name why a finding is wrong.
 
+The session-start block gives the absolute path to the checker. Use that path. Do not write it
+into a file, because a plugin upgrade moves it.
+
 ```bash
-python3 ~/.claude/skills/simplified-technical-english/check.py FILE [FILE...]
+python3 <the checker path from the session-start block> FILE [FILE...]
 ```
 
 The checker reads a markdown file or a source file. From a source file it takes only the comments, the
-docstrings, the error strings and the log strings. It reports the sentence length, the paragraph
-length, the passive voice, the gerund and the fragment. It cannot see article use or word choice,
-so read the artifact for those two.
+docstrings, the error strings and the log strings. It skips a ruler and a tool pragma, because
+neither one is prose. It reports the sentence length, the paragraph length, the passive voice, the
+gerund and the fragment. It cannot see article use or word choice, so read the artifact for those
+two.
 
 ## After the artifact
 

@@ -173,19 +173,23 @@ the comments, the docstrings, the error strings and the log strings. It reports
 the sentence length, the paragraph length, the passive voice, the gerund and the
 fragment.
 
-**The checker reports a false positive on some correct sentences.** It decides
-its rules with regular expressions, and six gaps produce one:
+Version 1.2.0 closed five gaps that reported a correct sentence as a fragment.
+The fragment rule used an open list of verbs, and an open list never closes. The
+checker now tests a closed list of words that never open an imperative sentence.
+It also skips a line that carries no sentence: a task line, an image embed, a
+link index, a comment ruler and a tool pragma.
 
-- It misses an imperative verb outside its list.
-- It reads `cannot` as no verb.
-- It misses an irregular past tense such as "held".
-- It misses a regular verb that ends in "-es", such as "accumulates".
-- It reads a past continuous as a bare gerund.
-- It anchors the imperative test to the start of the sentence, so "Then check
-  the data." fails.
+Against a corpus of 142 markdown files the fragment findings fell from 114 to 6,
+and the six that remain are real. Against 120 TypeScript files they fell from
+310 to 31. Every other rule reported the same findings before and after.
 
-Keep the sentence and record the finding. Never damage a good sentence to clear
-the checker.
+One gap stays open, and it is a judgment call. The checker reads a past
+continuous such as "the agent was writing" as a bare gerund. ASD-STE100 asks for
+the present tense, so the finding is correct and the rule name is wrong.
+
+**The checker still cannot see article use or word choice.** Keep a sentence that
+you can defend, and name why the finding is wrong. Never damage a good sentence
+to clear the checker.
 
 ## Levels
 

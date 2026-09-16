@@ -46,21 +46,37 @@ GERUND_RE = re.compile(
     r"|been|being|avoid|start|stop|begin|consider)\s+(\w{4,}ing)\b", re.I)
 GERUND_LEAD_RE = re.compile(r"^(\w{4,}ing)\b", re.I)
 
+# A past participle in IRREGULAR_PP is also a past tense, so it is also a finite
+# verb. "The partition held." holds a verb, and the fragment rule must see it.
+IRREGULAR_FINITE = {
+    "wrote", "won", "ran", "came", "went", "took", "saw", "knew", "grew", "fell",
+    "felt", "led", "met", "sat", "spoke", "stood", "understood", "began",
+    "became", "chose", "drew", "threw", "hid", "sought", "wore", "rose",
+}
 FINITE_VERB = re.compile(
-    rf"\b(?:{BE_VERB}|has|have|had|does|do|did|can|will|must|should|may|might"
+    rf"\b(?:{BE_VERB}|{'|'.join(sorted(IRREGULAR_PP | IRREGULAR_FINITE))}"
+    r"|has|have|had|does|do|did|can|cannot|will|must|should|may|might"
     r"|needs?|makes?|takes?|gives?|runs?|uses?|holds?|keeps?|reads?|writes?"
     r"|returns?|fails?|passes?|calls?|sets?|adds?|shows?|means?|works?"
     r"|skips?|covers?|hides?|holds?|breaks?|falls?|joins?|splits?|opens?"
     r"|closes?|drops?|applies|apply|carries|carry|lives?|belongs?|counts?"
-    r"|\w{2,}[^aeiou]s|\w{3,}ed)\b", re.I)
-IMPERATIVE = re.compile(
-    r"^(?:run|read|write|open|close|add|remove|delete|set|use|check|verify|see"
-    r"|do|make|start|stop|install|apply|revert|merge|push|pull|copy|move|keep"
-    r"|call|send|give|take|put|pick|choose|obey|examine|replace|repeat|go|note"
-    r"|skip|drop|fix|build|count|list|name|map|join|split|hold|find|report"
-    r"|number|order|prefer|limit|avoid|return|treat|score|flag|scan|extract"
-    r"|never|always|write|pick|state|keep|automate|declare|measure|split"
-    r"|enforce|carry|govern|prefer|assume|expect|reject|accept)\b", re.I)
+    r"|\w{2,}[^aeiou]s|\w{3,}es|\w{3,}ed)\b", re.I)
+# An imperative sentence opens with a bare verb. A checker cannot list every
+# verb, and an open list never closes. So list the words that never open an
+# imperative instead. That list is closed.
+NEVER_IMPERATIVE = {
+    "the", "a", "an", "this", "that", "these", "those", "it", "he", "she",
+    "they", "we", "you", "his", "her", "their", "our", "my", "its", "there",
+    "here", "one", "two", "three", "no", "any", "some", "each", "every", "all",
+    "both", "most", "more", "less", "few", "many", "such", "what", "which",
+    "who", "whose", "when", "where", "why", "how", "if", "because", "although",
+    "while", "after", "before", "since", "until", "unless", "and", "but", "or",
+    "nor", "so", "yet", "in", "on", "at", "to", "of", "by", "with", "from",
+    "into", "over", "under", "nothing", "something", "anything", "everything",
+    "once", "only", "just", "per", "via",
+}
+# An adverb or a connective can precede the verb. Remove it before the test.
+LEAD_IN_RE = re.compile(r"^(?:\w+ly|then|next|first|now|also|instead)\s+", re.I)
 
 NUMBERED_RE = re.compile(r"^\s{0,3}(?:\d+[.)]|[-*+])\s+")
 SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
@@ -69,6 +85,19 @@ WORD_RE = re.compile(r"[A-Za-z][A-Za-z'\-]*")
 BLOCK_COMMENT_EXT = {".ts", ".tsx", ".astro", ".js", ".jsx", ".mjs", ".sql", ".css"}
 LINE_COMMENT = {".ts": "//", ".tsx": "//", ".astro": "//", ".js": "//", ".jsx": "//",
                 ".mjs": "//", ".py": "#", ".sh": "#", ".bash": "#", ".sql": "--"}
+# A ruler and a tool pragma sit in a comment, and neither one is prose.
+RULER_RE = re.compile(r"^[\s\-=*~_#/+.]*$")
+PRAGMA_RE = re.compile(
+    r"^(?:eslint|prettier|biome|oxlint|istanbul|c8|v8|jscpd|noinspection|@ts-"
+    r"|ts-(?:ignore|expect-error|nocheck)|type:|pylint|noqa|ruff|mypy|flake8)",
+    re.I)
+
+
+def is_prose(body):
+    """Say whether a comment body holds a sentence."""
+    return bool(body.strip()) and not RULER_RE.match(body) and not PRAGMA_RE.match(body.strip())
+
+
 STRING_CALL = re.compile(
     r"(?:throw\s+new\s+\w*Error|console\.(?:log|warn|error|info)|logger?\.\w+)"
     r"""\s*\(\s*(['"`])(.+?)\1""", re.S)
@@ -101,6 +130,16 @@ def strip_markdown(text):
         if fenced or line.lstrip().startswith(("|", "<!--")) or line.startswith("    "):
             result.append((number, "", "break"))
             continue
+        bare = line.strip()
+        # A task line, an embed and a link index each carry a marker or a
+        # filename, and none of them carries a sentence.
+        if re.match(r"[-*+]\s+\[[ xX]\]", bare) or bare.startswith("!["):
+            result.append((number, "", "break"))
+            continue
+        if bare.startswith(("\u2192", "\u00b7")) or bare.startswith("[["):
+            if len(re.sub(r"!?\[\[[^\]]*\]\]|[\u2192\u00b7,\s]", "", bare)) < 3:
+                result.append((number, "", "break"))
+                continue
         if re.match(r"\s{0,3}#{1,6}\s", line):
             # A heading is a label, not a sentence. The prose rules skip it.
             result.append((number, "", "break"))
@@ -139,7 +178,7 @@ def extract_python(text):
         kind, value, start, _, _ = item
         if kind == token_mod.COMMENT:
             body = value.lstrip("#").strip()
-            if not (start[0] == 1 and value.startswith("#!")):
+            if not (start[0] == 1 and value.startswith("#!")) and is_prose(body):
                 result.append((start[0], body,
                                "join" if previous_type in opener else "isolate"))
         elif kind == token_mod.STRING and previous_type in opener:
@@ -181,7 +220,8 @@ def extract_source(text, ext):
                     prose = line[match.start() + len(marker):].strip()
                     standalone = not before.strip()
                     break
-            result.append((number, prose, "join" if standalone else "isolate"))
+            result.append((number, prose if is_prose(prose) else "",
+                           "join" if standalone else "isolate"))
 
     for match in STRING_CALL.finditer(text):
         number = text[: match.start()].count("\n") + 1
@@ -225,8 +265,10 @@ def check_sentence(sentence, limit, path, number, findings):
     if gerund and gerund.group(1).lower() not in NOT_GERUND:
         findings.append((path, number, "GERUND",
                          f'"{gerund.group(1)}" needs a clause with a finite verb.'))
-    if 1 < len(words) <= 4 and not FINITE_VERB.search(sentence) \
-            and not IMPERATIVE.match(sentence.lstrip("\"'([-*+ 0123456789.)")):
+    head = LEAD_IN_RE.sub("", sentence.lstrip("\"'([-*+ 0123456789.)"))
+    opener = WORD_RE.match(head)
+    imperative = bool(opener) and opener.group(0).lower() not in NEVER_IMPERATIVE
+    if 1 < len(words) <= 4 and not FINITE_VERB.search(sentence) and not imperative:
         findings.append((path, number, "FRAGMENT",
                          f'"{sentence[:50]}" needs a complete sentence.'))
 
@@ -291,7 +333,10 @@ def main(argv):
         return 2
     findings = []
     for path in argv[1:]:
-        findings.extend(check_file(path))
+        try:
+            findings.extend(check_file(path))
+        except OSError as error:
+            print(f"{path}: SKIPPED: {error.strerror}.", file=sys.stderr)
     for path, number, rule, message in sorted(findings, key=lambda item: (item[0], item[1])):
         print(f"{path}:{number}: {rule}: {message}")
     counts = {}
