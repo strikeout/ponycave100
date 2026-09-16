@@ -14,10 +14,24 @@
 // The three rules used to arrive as separate injections. Each one spent tokens
 // to explain the boundary with the other two. This file states the boundary
 // once, so it costs about 70 percent less than the sum it replaces.
+//
+// One script serves three hosts. `--host` selects the output envelope, and
+// `--kind` names the surface when the host sends no event name.
+//
+//   --host=claude    (default) {hookSpecificOutput:{hookEventName,additionalContext}}
+//   --host=copilot   {additionalContext}
+//   --host=text      the rules as plain text, for a host with no JSON contract
 
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
+
+const ARGV = process.argv.slice(2)
+function arg(name, fallback) {
+  const hit = ARGV.find((a) => a.startsWith(`--${name}=`))
+  return hit ? hit.slice(name.length + 3) : fallback
+}
+const HOST = arg('host', 'claude')
 
 const CLAUDE_DIR = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude')
 const STATE = path.join(CLAUDE_DIR, '.ponycave100.json')
@@ -153,23 +167,46 @@ function build(kind, agentType) {
   return `${head}\n\n${parts.join('\n\n')}${tail}`
 }
 
+// Each host reads a different envelope. Copilot CLI reads a flat
+// `additionalContext`. A host with no JSON contract reads the text itself.
 function emit(event, text) {
+  if (HOST === 'text') {
+    process.stdout.write(text)
+    return
+  }
+  if (HOST === 'copilot') {
+    process.stdout.write(JSON.stringify({ additionalContext: text }))
+    return
+  }
   process.stdout.write(
     JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: text } })
   )
 }
 
-function main() {
-  let payload = {}
+// A host that calls this script directly sends no payload. Read the terminal
+// and the script blocks for ever, so test the descriptor first.
+function readPayload() {
   try {
-    payload = JSON.parse(fs.readFileSync(0, 'utf8')) || {}
+    if (process.stdin.isTTY) return {}
+    return JSON.parse(fs.readFileSync(0, 'utf8')) || {}
   } catch (e) {
     // A missing payload costs only the agent-type exemption.
+    return {}
   }
-  const event = payload.hook_event_name || 'SessionStart'
-  let kind = 'session'
-  if (event === 'SubagentStart') kind = 'subagent'
-  else if (event === 'UserPromptSubmit') kind = 'turn'
+}
+
+function main() {
+  const payload = readPayload()
+  const event = payload.hook_event_name || payload.hookEventName || 'SessionStart'
+
+  // Claude Code names the event in the payload. Another host names the surface
+  // on the command line, because its payload carries no event name.
+  let kind = arg('kind', '')
+  if (!kind) {
+    kind = 'session'
+    if (event === 'SubagentStart') kind = 'subagent'
+    else if (event === 'UserPromptSubmit') kind = 'turn'
+  }
 
   // The per-turn event repeats only the persistence reminder. The full ruleset
   // is already in the session context, and a second copy each turn is waste.
@@ -183,7 +220,11 @@ function main() {
     return
   }
 
-  const text = build(kind, payload.agent_type || '')
+  // Each host names the agent differently, and one of them may name it not at
+  // all. An empty name only costs the read-only exemption.
+  const agent =
+    payload.agent_type || payload.agentType || payload.agentName || payload.agent || ''
+  const text = build(kind, agent)
   if (text) emit(event, text)
 }
 

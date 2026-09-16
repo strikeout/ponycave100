@@ -36,7 +36,7 @@ one, because the model invokes a skill and nothing invokes one inside a fresh
 subagent. Only a `SubagentStart` hook reaches it, and a plugin is the unit that
 carries a hook.
 
-## Install
+## Install on Claude Code
 
 ```bash
 claude plugin marketplace add strikeout/ponycave100
@@ -62,6 +62,81 @@ echo '{"hook_event_name":"SessionStart"}' \
 
 The command prints one JSON object. `additionalContext` holds the three rules.
 
+## Install on opencode
+
+Verified against opencode 1.14.33.
+
+opencode gives a plugin no session-start event. It gives
+`experimental.chat.system.transform`, which hands the plugin the system prompt
+before each model call. The adapter appends the rules to that array.
+
+**Clone this repository to a stable path first.** The adapter holds an absolute
+path to the hook, and a move of the repository breaks it.
+
+```bash
+R=~/src/ponycave100        # the path you cloned to
+mkdir -p ~/.config/opencode/plugins
+sed "s|__PONYCAVE100_HOOK__|$R/hooks/ponycave100.js|" \
+  "$R/adapters/opencode/ponycave100.js" > ~/.config/opencode/plugins/ponycave100.js
+```
+
+opencode loads every `*.js` file in that directory by itself, so the file
+`opencode.json` needs no entry. Confirm the install in a new session:
+
+```bash
+opencode run "Quote the first line of the HOUSE STYLE block in your context."
+```
+
+The model answers `HOUSE STYLE. Three surfaces. Never blend them.`
+
+**opencode never trims the rules for an agent.** The hook receives `sessionID`
+and `model` alone, and it runs before `chat.params`, which is the one hook that
+names the agent. Every model call therefore reads the full block. This includes
+a read-only agent, and it includes the internal title agent.
+
+## Install on Copilot CLI
+
+**A live session did not verify this.** The author has no Copilot CLI
+installation. The command follows the documented hook contract, and a test
+proves the hook's own output. Report a failure as an issue.
+
+Copilot CLI reads a flat `{"additionalContext": "..."}` from the stdout of a
+hook. It merges every `*.json` file in the hooks directory.
+
+```bash
+R=~/src/ponycave100        # the path you cloned to
+mkdir -p ~/.copilot/hooks
+sed "s|__PONYCAVE100_HOOK__|$R/hooks/ponycave100.js|" \
+  "$R/adapters/copilot/ponycave100.json" > ~/.copilot/hooks/ponycave100.json
+```
+
+The adapter registers two events. `sessionStart` carries the full ruleset.
+`subagentStart` carries the subagent form, and Copilot runs it before the
+subagent starts.
+
+**Copilot CLI drops the output of a `userPromptSubmitted` command hook**, so the
+per-turn reminder has no equivalent there. Only an SDK hook modifies a prompt.
+
+## What each host receives
+
+| | Claude Code | opencode | Copilot CLI |
+|---|---|---|---|
+| Session rules | yes | yes, on each model call | yes |
+| Subagent rules | yes, trimmed per agent | the full block, never trimmed | yes, trimmed per agent |
+| Per-turn reminder | yes | each call repeats the rules | no |
+| Install | a plugin | one file, copied | one file, copied |
+| Verified | a live session | a live session | the contract alone |
+
+The hook itself serves all three. `--host` selects the envelope, and `--kind`
+names the surface when the host sends no event name:
+
+```bash
+node hooks/ponycave100.js --host=text --kind=session    # the rules, as text
+```
+
+Give `--host=text` to any other agent. Append its output to that agent's
+`AGENTS.md` between two markers, and generate it again after an upgrade.
+
 ## What it contains
 
 | Path | What it is |
@@ -70,6 +145,8 @@ The command prints one JSON object. `additionalContext` holds the three rules.
 | `hooks/hooks.json` | the event registration |
 | `skills/ponycave100/` | the rules in full, and the level control |
 | `skills/simplified-technical-english/` | the ASD-STE100 skill and its checker |
+| `adapters/opencode/` | the opencode plugin, as a template |
+| `adapters/copilot/` | the Copilot CLI hook config, as a template |
 
 The checker needs `python3`. The hook needs `node`. Both ship with Claude Code
 on a normal developer machine.

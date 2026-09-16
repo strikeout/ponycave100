@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "type": "command",
+        "bash": "node '__PONYCAVE100_HOOK__' --host=copilot --kind=session",
+        "timeoutSec": 10
+      }
+    ],
+    "subagentStart": [
+      {
+        "type": "command",
+        "bash": "node '__PONYCAVE100_HOOK__' --host=copilot --kind=subagent",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}
