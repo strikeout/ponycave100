@@ -1,0 +1,11 @@
+{
+  "name": "ponycave100",
+  "version": "1.0.0",
+  "description": "One hook that carries three style rules to every session and every subagent: terse prose, ASD-STE100 artifacts, and lazy code.",
+  "author": {
+    "name": "strikeout",
+    "url": "https://github.com/strikeout"
+  },
+  "license": "MIT",
+  "hooks": "./hooks/hooks.json"
+}
