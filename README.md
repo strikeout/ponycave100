@@ -1,14 +1,70 @@
 # ponycave100
 
-**ponycave100 merges three rulesets into one hook.** It takes the terse prose
-rule from the `caveman` plugin, the lazy-code ladder from the `ponytail`
-plugin, and ASD-STE100 for every file the agent writes. The name carries the
-three parts: **pony**, **cave**, **100**.
+**One hook makes your agent write terse in chat and rigorous in files, and it
+carries that split into every subagent.**
 
-One hook then delivers all three to every session and to every subagent.
+An agent has one voice. It gives you a six-paragraph chat reply, and then it
+writes a commit message that says `fix: resolve issue`. You want the opposite: a
+reply that you can scan in three seconds, and a file that a stranger can still
+read in six months.
 
-Read [`example.md`](example.md) for each rule in use, once without the plugin
-and once with it.
+Those two goals contradict each other, so one style cannot serve both. This
+plugin carries both, names the surface before each rule, and reaches the
+subagents that a skill and a `CLAUDE.md` never reach.
+
+### In a chat reply
+
+```text
+before   Great question! I've gone ahead and installed the plugin for you.
+         Unfortunately, it looks like there may have been an issue with the
+         installation. When I ran `claude plugin list`, I noticed that the
+         plugin is showing a "failed to load" status. This appears to be
+         related to a duplicate hooks file being detected...
+
+after    Plugin installed but dead. `.claude-plugin/plugin.json` declares
+         "hooks": "./hooks/hooks.json". Claude Code loads that path by
+         itself. Fix = delete the key.
+```
+
+### In a file that you commit
+
+```text
+before   This commit fixes an issue where the plugin was failing to load due
+         to a duplicate hooks file being detected. By removing the redundant
+         hooks key, we're now able to successfully load the plugin.
+
+after    Claude Code loads `hooks/hooks.json` from a plugin root by itself.
+         The manifest also declared that path in its `hooks` key, so the
+         loader saw the same file twice. It rejected the whole plugin.
+```
+
+The second one is longer, and that is correct. A reader of a file was not in the
+session. [`example.md`](example.md) shows all three surfaces this way.
+
+## Install
+
+```bash
+claude plugin marketplace add strikeout/ponycave100
+claude plugin install ponycave100@ponycave100 --scope user
+```
+
+Then open a new session. A hook loads at session start, so the session that
+installs the plugin does not change.
+
+opencode and Copilot CLI need one file each. Read
+[Install on opencode](#install-on-opencode) and
+[Install on Copilot CLI](#install-on-copilot-cli).
+
+## The name, and the three rules it merges
+
+| Part | The rule | It comes from |
+|---|---|---|
+| **pony** | the lazy-code ladder | the `ponytail` plugin |
+| **cave** | terse prose | the `caveman` plugin |
+| **100** | ASD-STE100 for every file | the aerospace writing standard |
+
+This plugin needs neither of those two plugins. It carries a short form of each
+rule itself, and it yields if you install one of them.
 
 ## The problem it solves
 
@@ -41,6 +97,23 @@ The hook names the surface before it gives a rule, because two of the rules
 disagree. [`example.md`](example.md) shows each surface twice: once without the
 plugin, and once with it.
 
+## When not to use this
+
+- **You want one voice everywhere.** This plugin exists to split the voice by
+  surface. A single style guide in `CLAUDE.md` costs less and does that better.
+- **You never dispatch a subagent.** A hook earns its place at the subagent
+  boundary. For one main thread, a skill or a `CLAUDE.md` section is enough.
+- **You write your files in another language.** ASD-STE100 is an English
+  standard. The prose rule keeps the language of the user, and the artifact rule
+  does not.
+- **You want a brand voice with personality in your docs.** ASD-STE100 is plain
+  on purpose. It optimises for one reading, by a stranger, under time pressure.
+
+The prose layer and the code layer each switch off in
+[`~/.claude/.ponycave100.json`](#levels). The artifact layer has no switch,
+because a file is durable or it is not. To turn that layer off, uninstall the
+plugin.
+
 ## Why it is a plugin and not a skill
 
 A subagent inherits no context from its parent session. A skill cannot reach
@@ -50,15 +123,8 @@ carries a hook.
 
 ## Install on Claude Code
 
-```bash
-claude plugin marketplace add strikeout/ponycave100
-claude plugin install ponycave100@ponycave100 --scope user
-```
-
-A local directory works in place of the repository name.
-
-**A hook loads at session start, so the plugin changes nothing in the session
-that installs it.** Open a new session, and confirm there.
+The two commands sit in [Install](#install) above. A local directory works in
+place of the repository name.
 
 **`claude plugin install` reports the download, never the load.** Run
 `claude plugin list` after it, and read the status line. A plugin that fails to
@@ -148,6 +214,25 @@ node hooks/ponycave100.js --host=text --kind=session    # the rules, as text
 
 Give `--host=text` to any other agent. Append its output to that agent's
 `AGENTS.md` between two markers, and generate it again after an upgrade.
+
+## Uninstall
+
+Each host keeps the plugin in one place, so each one removes it in one step.
+
+```bash
+# Claude Code
+claude plugin uninstall ponycave100@ponycave100
+claude plugin marketplace remove ponycave100
+
+# opencode
+rm ~/.config/opencode/plugins/ponycave100.js
+
+# Copilot CLI
+rm ~/.copilot/hooks/ponycave100.json
+```
+
+The plugin writes one other file, and only when you change a level:
+`~/.claude/.ponycave100.json`. Delete it too, or keep it for the next install.
 
 ## What it contains
 
