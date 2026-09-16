@@ -1,15 +1,27 @@
 # ponycave100
 
-One hook carries three style rules to every session and to every subagent:
-terse prose, ASD-STE100 files, and lazy code.
+**ponycave100 merges three rulesets into one hook.** It takes the terse prose
+rule from the `caveman` plugin, the lazy-code ladder from the `ponytail`
+plugin, and ASD-STE100 for every file the agent writes. The name carries the
+three parts: **pony**, **cave**, **100**.
+
+One hook then delivers all three to every session and to every subagent.
+
+Read [`example.md`](example.md) for each rule in use, once without the plugin
+and once with it.
 
 ## The problem it solves
 
-Three separate sources used to inject three rulesets. Each one spent tokens to
-explain its boundary with the other two, and one of them sent its full ruleset
-into every subagent. A fan-out of twelve agents paid that twelve times.
+The three rulesets used to arrive from three separate sources. Each source
+spent tokens to explain its boundary with the other two, and one of them sent
+its full ruleset into every subagent. A fan-out of twelve agents paid that cost
+twelve times.
 
-This plugin states the boundary once, so it costs about 70 percent less.
+The three also disagree, so a blend of them is wrong. ASD-STE100 needs the
+articles and a complete sentence, and the terse prose rule drops both. A merge
+must therefore name the surface before it gives a rule.
+
+This plugin names the boundary once, so it costs about 70 percent less.
 
 | Event | Three sources | One hook | Saved |
 |---|---|---|---|
@@ -25,9 +37,9 @@ This plugin states the boundary once, so it costs about 70 percent less.
 | Every file the agent writes | ASD-STE100 | it outlives the session |
 | The design decisions inside that file | the lazy ladder | the codebase |
 
-The rules disagree on one point, so a reader must never blend them. ASD-STE100
-needs the articles and a complete sentence, and the terse prose rule drops
-both. The hook names the surface before each rule for that reason.
+The hook names the surface before it gives a rule, because two of the rules
+disagree. [`example.md`](example.md) shows each surface twice: once without the
+plugin, and once with it.
 
 ## Why it is a plugin and not a skill
 
@@ -145,6 +157,7 @@ Give `--host=text` to any other agent. Append its output to that agent's
 | `hooks/hooks.json` | the event registration |
 | `skills/ponycave100/` | the rules in full, and the level control |
 | `skills/simplified-technical-english/` | the ASD-STE100 skill and its checker |
+| `example.md` | each rule in use, without the plugin and with it |
 | `adapters/opencode/` | the opencode plugin, as a template |
 | `adapters/copilot/` | the Copilot CLI hook config, as a template |
 

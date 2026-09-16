@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "ponycave100",
-  "description": "One hook that carries three style rules to every session and every subagent: terse prose, ASD-STE100 artifacts, and lazy code.",
+  "description": "A merge of the caveman terse-prose rule, the ponytail lazy-code ladder and ASD-STE100 for every file. One hook carries all three to every session and every subagent.",
   "owner": {
     "name": "strikeout",
     "url": "https://github.com/strikeout"
@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "ponycave100",
-      "description": "Terse prose, ASD-STE100 files, lazy code. One hook, three surfaces, all subagents.",
+      "description": "Merges caveman, ponytail and ASD-STE100 into one hook. Three surfaces, every session, every subagent.",
       "source": "./",
       "category": "productivity"
     }
