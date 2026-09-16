@@ -22,6 +22,18 @@ sentence, and the terse prose rule drops both.
 | Every file the agent writes | ASD-STE100 | it outlives the session |
 | The design decisions inside that file | the lazy ladder | the codebase |
 
+**One genre leaves the artifact rule.** Marketing copy, a blog post and outreach
+persuade a human reader, and ASD-STE100 does not govern them. The `no-ai-slop`
+skill governs them, and this plugin ships it.
+
+The two standards disagree, so never blend them either. ASD-STE100 asks for a
+uniform sentence and no voice. `no-ai-slop` asks the writer to vary the cadence
+and to keep the voice. The genre decides which one applies.
+
+A short anti-slop rule reaches every artifact, because it contradicts neither
+standard. Cut the empty word, name the source, and end on the last concrete
+point.
+
 ## How the rules reach an agent
 
 One hook carries all three: `hooks/ponycave100.js`. It answers three events.

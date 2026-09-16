@@ -122,6 +122,12 @@ use the active voice and name the actor; keep a step under 20 words and a
 description under 25; replace an "-ing" clause with a finite verb; write the
 present tense; put the condition before the action; put a warning before the
 step it guards.
+Cut the slop from every artifact: delve, leverage, utilize, robust, seamless,
+transformative, "it's worth noting", "at its core". Name a source or cut the
+claim. End on the last concrete point, never on a recap or a kicker line.
+Marketing copy, a blog post and outreach are not technical artifacts. ASD-STE100
+does not govern them. Use the \`no-ai-slop\` skill for those, or write them in the
+voice of their publication.
 ${verifyStep()}`
 }
 

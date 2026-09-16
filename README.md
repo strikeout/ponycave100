@@ -120,9 +120,15 @@ This plugin names the boundary once, so it costs about 70 percent less.
 
 | Event | Three sources | One hook | Saved |
 |---|---|---|---|
-| `SessionStart` | ~2103 tokens | ~564 tokens | 73% |
-| `SubagentStart`, each agent | ~1749 tokens | ~541 tokens | 69% |
+| `SessionStart` | ~2103 tokens | ~669 tokens | 68% |
+| `SubagentStart`, each writing agent | ~1749 tokens | ~646 tokens | 63% |
+| `SubagentStart`, each read-only agent | ~1749 tokens | ~153 tokens | 91% |
 | `UserPromptSubmit`, each turn | ~50 tokens | ~16 tokens | 68% |
+
+A read-only agent writes no file, so it receives the prose rule alone. The
+`no-ai-slop` skill holds 2722 tokens of rules. The hook sends about 104 of
+them: the words to cut, the source rule, the ending rule and the exception. The
+skill carries the rest, and the agent loads it when the genre calls for it.
 
 ## Three surfaces, three rules
 
@@ -131,6 +137,16 @@ This plugin names the boundary once, so it costs about 70 percent less.
 | A chat reply, and a subagent's report back | terse prose | the session |
 | Every file the agent writes | ASD-STE100 | it outlives the session |
 | The design decisions inside that file | the lazy ladder | the codebase |
+| Copy that persuades a human reader | `no-ai-slop` | the campaign |
+
+The fourth row is an exception, and not a fourth block of rules. Marketing copy,
+a blog post and outreach leave the artifact rule, because ASD-STE100 is a
+technical standard. The hook names that exception in one sentence and sends the
+agent to the `no-ai-slop` skill, which this plugin ships.
+
+Those two standards disagree in the same way that the first two do. ASD-STE100
+asks for a uniform sentence and no voice. `no-ai-slop` asks the writer to vary
+the cadence and to keep the voice. The genre decides, and a blend is wrong.
 
 The hook names the surface before it gives a rule, because two of the rules
 disagree. [`example.md`](example.md) shows each surface twice: once without the
@@ -353,6 +369,7 @@ The plugin writes one other file, and only when you change a level:
 | `hooks/hooks.json` | the event registration |
 | `skills/ponycave100/` | the rules in full, and the level control |
 | `skills/simplified-technical-english/` | the ASD-STE100 skill and its checker |
+| `skills/no-ai-slop/` | the skill for copy that persuades a human reader |
 | `example.md` | each rule in use, without the plugin and with it |
 | `adapters/opencode/` | the opencode plugin, as a template |
 | `adapters/copilot/` | the Copilot CLI hook config, as a template |
@@ -419,5 +436,6 @@ skills and the agents of both plugins still work.
 ## Credit
 
 The prose rule compresses the `caveman` plugin by Julius Brussee. The code rule
-compresses the `ponytail` plugin by Dietrich Gebert. Both are MIT. See
-`LICENSE`.
+compresses the `ponytail` plugin by Dietrich Gebert. Both are MIT. The
+`no-ai-slop` skill is the work of this repository's author, and it ships whole.
+See `LICENSE`.
