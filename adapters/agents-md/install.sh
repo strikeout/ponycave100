@@ -18,10 +18,19 @@ if [ -z "$target" ]; then
   exit 2
 fi
 
-root=$(cd "$(dirname "$0")/../.." && pwd)
-hook="$root/hooks/ponycave100.js"
+# Find the hook. The environment wins, then the repository layout, then the
+# two-file install. The script therefore works from a clone and on its own.
+hook="${PONYCAVE100_HOOK:-}"
+if [ -z "$hook" ]; then
+  for candidate in \
+    "$(cd "$(dirname "$0")/../.." 2>/dev/null && pwd)/hooks/ponycave100.js" \
+    "$HOME/.ponycave100/ponycave100.js"
+  do
+    if [ -f "$candidate" ]; then hook="$candidate"; break; fi
+  done
+fi
 if [ ! -f "$hook" ]; then
-  echo "install.sh: no hook at $hook." >&2
+  echo "install.sh: no hook found. Set PONYCAVE100_HOOK to its path." >&2
   exit 1
 fi
 

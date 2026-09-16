@@ -48,14 +48,16 @@ session. [`example.md`](example.md) shows all three surfaces this way.
 The agent knows which agent it is, so let it install itself:
 
 ```text
-Set up ponycave100 on this machine, for the agent that you are.
+Install ponycave100 on this machine, for the agent that you are.
 
-    git clone https://github.com/strikeout/ponycave100 ~/src/ponycave100
+Read https://github.com/strikeout/ponycave100 — its README holds one install
+section per host. Find the section that matches you, and follow it. If no
+section matches you, follow "Install on any other agent".
 
-Then read ~/src/ponycave100/README.md. Find the "Install on ..." section that
-matches you, and follow it. If no section matches you, follow "Any other
-agent". Tell me which section you used, and tell me when to restart.
+Tell me which section you used, and tell me when to restart.
 ```
+
+An agent that cannot reach the web can clone the repository first.
 
 ### Or install it yourself
 
@@ -76,6 +78,21 @@ claude plugin install ponycave100@ponycave100 --scope user
 
 Then open a new session. A hook loads at session start, so the session that
 installs the plugin does not change.
+
+### Every other host needs two files
+
+**A clone is not necessary.** The plugin runs two files, and it runs nothing
+else: the hook and the checker, 25 KB in total. Put them at one stable path:
+
+```bash
+mkdir -p ~/.ponycave100
+base=https://raw.githubusercontent.com/strikeout/ponycave100/main
+curl -fsSL $base/hooks/ponycave100.js -o ~/.ponycave100/ponycave100.js
+curl -fsSL $base/skills/simplified-technical-english/check.py -o ~/.ponycave100/check.py
+```
+
+The hook finds the checker beside itself, so the path never moves. Clone the
+repository instead if you want to read it or fork it. Both layouts work.
 
 ## The name, and the three rules it merges
 
@@ -174,10 +191,11 @@ before each model call. The adapter appends the rules to that array.
 path to the hook, and a move of the repository breaks it.
 
 ```bash
-R=~/src/ponycave100        # the path you cloned to
+base=https://raw.githubusercontent.com/strikeout/ponycave100/main
 mkdir -p ~/.config/opencode/plugins
-sed "s|__PONYCAVE100_HOOK__|$R/hooks/ponycave100.js|" \
-  "$R/adapters/opencode/ponycave100.js" > ~/.config/opencode/plugins/ponycave100.js
+curl -fsSL $base/adapters/opencode/ponycave100.js \
+  | sed "s|__PONYCAVE100_HOOK__|$HOME/.ponycave100/ponycave100.js|" \
+  > ~/.config/opencode/plugins/ponycave100.js
 ```
 
 opencode loads every `*.js` file in that directory by itself, so the file
@@ -204,10 +222,11 @@ Copilot CLI reads a flat `{"additionalContext": "..."}` from the stdout of a
 hook. It merges every `*.json` file in the hooks directory.
 
 ```bash
-R=~/src/ponycave100        # the path you cloned to
+base=https://raw.githubusercontent.com/strikeout/ponycave100/main
 mkdir -p ~/.copilot/hooks
-sed "s|__PONYCAVE100_HOOK__|$R/hooks/ponycave100.js|" \
-  "$R/adapters/copilot/ponycave100.json" > ~/.copilot/hooks/ponycave100.json
+curl -fsSL $base/adapters/copilot/ponycave100.json \
+  | sed "s|__PONYCAVE100_HOOK__|$HOME/.ponycave100/ponycave100.js|" \
+  > ~/.copilot/hooks/ponycave100.json
 ```
 
 The adapter registers two events. `sessionStart` carries the full ruleset.
@@ -227,8 +246,9 @@ Add the block from `adapters/gemini/settings.json` to the `hooks` object of
 `~/.gemini/settings.json`, and replace the placeholder with your path:
 
 ```bash
-R=~/src/ponycave100        # the path you cloned to
-sed "s|__PONYCAVE100_HOOK__|$R/hooks/ponycave100.js|" "$R/adapters/gemini/settings.json"
+base=https://raw.githubusercontent.com/strikeout/ponycave100/main
+curl -fsSL $base/adapters/gemini/settings.json \
+  | sed "s|__PONYCAVE100_HOOK__|$HOME/.ponycave100/ponycave100.js|"
 ```
 
 `~/.gemini/settings.json` holds other settings, so merge the `hooks` object
@@ -244,8 +264,16 @@ An agent that reads an instruction file needs no hook. One command writes the
 rules into that file, between two markers:
 
 ```bash
-sh ~/src/ponycave100/adapters/agents-md/install.sh ~/.codex/AGENTS.md
+base=https://raw.githubusercontent.com/strikeout/ponycave100/main
+curl -fsSL $base/adapters/agents-md/install.sh | sh -s -- ~/.codex/AGENTS.md
 ```
+
+The script finds the hook at `~/.ponycave100/ponycave100.js`, at a clone, or at
+`PONYCAVE100_HOOK`. **Read a script before you pipe it into a shell.** Download
+it first if you prefer.
+
+A host with no checker on disk gets no verify step. The artifact rule then ends
+with one instruction to read the artifact again.
 
 The command is idempotent. It replaces the block when the markers are present,
 and it appends the block when they are absent. Point it at whichever file your
@@ -309,6 +337,9 @@ $EDITOR ~/.gemini/settings.json
 
 # An instruction file — delete the block between the two markers
 $EDITOR ~/.codex/AGENTS.md
+
+# The two files, if you installed them
+rm -rf ~/.ponycave100
 ```
 
 The plugin writes one other file, and only when you change a level:

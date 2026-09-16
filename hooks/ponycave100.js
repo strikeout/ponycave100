@@ -42,17 +42,20 @@ const READ_ONLY = ['Explore', 'Plan', 'cavecrew-investigator', 'cavecrew-reviewe
 // These agents carry the terse rule in their own definition already.
 const TERSE_ALREADY = ['cavecrew-investigator', 'cavecrew-builder', 'cavecrew-reviewer']
 
-// The checker ships beside this hook. Claude Code sets CLAUDE_PLUGIN_ROOT for a
-// plugin hook. The second candidate covers a copy that somebody installs by hand.
+// Find the checker. Claude Code sets CLAUDE_PLUGIN_ROOT for a plugin hook. The
+// repository keeps the checker one directory up. A two-file install keeps the
+// checker beside the hook. An agent that reads a file has no checker at all.
 function checkerPath() {
-  const roots = []
-  if (process.env.CLAUDE_PLUGIN_ROOT) roots.push(process.env.CLAUDE_PLUGIN_ROOT)
-  roots.push(path.join(__dirname, '..'))
-  for (const root of roots) {
-    const candidate = path.join(root, 'skills', 'simplified-technical-english', 'check.py')
+  const candidates = []
+  if (process.env.PONYCAVE100_CHECKER) candidates.push(process.env.PONYCAVE100_CHECKER)
+  const nested = (root) => path.join(root, 'skills', 'simplified-technical-english', 'check.py')
+  if (process.env.CLAUDE_PLUGIN_ROOT) candidates.push(nested(process.env.CLAUDE_PLUGIN_ROOT))
+  candidates.push(nested(path.join(__dirname, '..')))
+  candidates.push(path.join(__dirname, 'check.py'))
+  for (const candidate of candidates) {
     if (fs.existsSync(candidate)) return candidate
   }
-  return path.join(roots[0], 'skills', 'simplified-technical-english', 'check.py')
+  return ''
 }
 
 // Read the level for each layer. A missing file means both layers run at full.
@@ -119,7 +122,15 @@ use the active voice and name the actor; keep a step under 20 words and a
 description under 25; replace an "-ing" clause with a finite verb; write the
 present tense; put the condition before the action; put a warning before the
 step it guards.
-Verify: python3 ${checkerPath()} FILE
+${verifyStep()}`
+}
+
+// Name the checker only when the checker exists. A path that resolves to
+// nothing costs tokens and sends the agent to a file that is not there.
+function verifyStep() {
+  const checker = checkerPath()
+  if (!checker) return 'Read the artifact once more against these rules before you deliver it.'
+  return `Verify: python3 ${checker} FILE
 The checker reports a false positive on some correct sentences. Fix what it
 finds, or name why the finding is wrong. Never damage a good sentence for it.`
 }
