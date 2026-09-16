@@ -48,6 +48,10 @@ A local directory works in place of the repository name.
 **A hook loads at session start, so the plugin changes nothing in the session
 that installs it.** Open a new session, and confirm there.
 
+**`claude plugin install` reports the download, never the load.** Run
+`claude plugin list` after it, and read the status line. A plugin that fails to
+load still appears as enabled in `settings.json`.
+
 ## Verify
 
 ```bash
