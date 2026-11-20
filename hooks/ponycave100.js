@@ -105,45 +105,39 @@ function pluginActive(which) {
   return false
 }
 
-// Each prose level sets a word budget. The lite level sets no number. A style
-// rule alone removes the preamble, but the length stays. A number removes it.
+// Each prose level sets a word budget for the chat reply. The lite level sets
+// no number. A subagent report gets no number at all, because a capped report
+// dropped facts that the subagent had read. The owner forbids a lost fact.
 //   reply   a chat reply
 //   final   the last message of a task
-//   agent   a subagent report, when the brief sets no cap
 const BUDGET = {
   lite: null,
-  full: { reply: 150, final: 250, agent: 200 },
-  ultra: { reply: 80, final: 150, agent: 120 },
+  full: { reply: 150, final: 250 },
+  ultra: { reply: 80, final: 150 },
 }
 
-// A subagent fills the word cap of its brief, so the brief controls the length
-// of the report. The main thread gets a rule for the brief for that reason.
-// A budget must never cost a fact. KEEP says so in each surface and at each
-// level, because a cap alone made a subagent drop a finding.
-const KEEP = `A word budget cuts words, never facts. Keep every finding, number,
-contradiction, risk and open question. If the facts need more words than the
-budget, go over the budget.`
+// A word budget must never cost a fact. KEEP says so on each surface and at
+// each level.
+const KEEP = `Cut words, never facts. Keep every finding, number, contradiction,
+risk and open question. If the facts need more words than a budget, go over
+the budget.`
 
 function prose(kind, level) {
   const b = BUDGET[level]
   const fragments = level === 'ultra' ? 'Fragments only, one line for each fact.' : 'Fragments are fine.'
   if (kind === 'subagent') {
-    const budget = b
-      ? `\nBudget: the cap in your brief, or ${b.agent} words if the brief sets none.`
-      : ''
     return `PROSE — your report back. An orchestrator reads it, not a human. Terse.
 Drop articles, filler, pleasantries, hedging. ${fragments} Give the result
 first, then one row for each fact, such as \`path:line — fact\`. Give no plan
 narration, no restatement of the task and no closing summary. Write the shortest
 version that loses no fact. Keep the user's language. Never announce this
-style.${budget}
+style.
 ${KEEP}`
   }
   const budget = b
     ? `\nBudget: a reply stays under ${b.reply} words, and the last message of a task
 under ${b.final}.`
     : ''
-  const cap = b ? ` and a cap of ${b.agent} words` : ' and a word cap'
   return `PROSE — your chat reply. Terse.
 Drop articles, filler, pleasantries, hedging. ${fragments} Lead with the
 answer. Give no preamble, no restatement of the task and no closing summary.
@@ -153,10 +147,9 @@ The last message of a task holds the result and what the user must act on. It
 is never a log of the steps.${budget}
 ${KEEP}
 
-DELEGATE — a subagent fills the cap of its brief, so the brief sets the length
-of its report. Give each brief a report shape, such as \`path:line — fact\`
-rows,${cap}. Write in the brief that the cap cuts words, never facts. Ask only
-for what you will read.`
+DELEGATE — give each brief a report shape, such as \`path:line — fact\` rows.
+Set no word cap. A subagent fills a cap, and under a cap it drops facts that it
+has read.`
 }
 
 function artifact() {
@@ -282,7 +275,7 @@ function main() {
     // sits far back in a long session.
     const b = BUDGET[level.prose]
     if (level.prose !== 'off' && !pluginActive('prose'))
-      bits.push(b ? `prose terse (reply ≤${b.reply} words, brief cap ≤${b.agent})` : 'prose terse')
+      bits.push(b ? `prose terse (reply ≤${b.reply} words, never a lost fact)` : 'prose terse')
     if (level.code !== 'off' && !pluginActive('code')) bits.push('code lazy')
     bits.push('files ASD-STE100')
     emit('UserPromptSubmit', `HOUSE STYLE still active: ${bits.join(', ')}.`)

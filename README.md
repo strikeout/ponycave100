@@ -121,10 +121,10 @@ figures are for the `full` level.
 
 | Event | Three sources | One hook | Saved |
 |---|---|---|---|
-| `SessionStart` | ~2103 tokens | ~836 tokens | 60% |
-| `SubagentStart`, each writing agent | ~1749 tokens | ~716 tokens | 59% |
-| `SubagentStart`, each read-only agent | ~1749 tokens | ~223 tokens | 87% |
-| `UserPromptSubmit`, each turn | ~50 tokens | ~25 tokens | 50% |
+| `SessionStart` | ~2103 tokens | ~805 tokens | 62% |
+| `SubagentStart`, each writing agent | ~1749 tokens | ~694 tokens | 60% |
+| `SubagentStart`, each read-only agent | ~1749 tokens | ~201 tokens | 89% |
+| `UserPromptSubmit`, each turn | ~50 tokens | ~26 tokens | 48% |
 
 A read-only agent writes no file, so it receives the prose rule alone. The
 `no-ai-slop` skill holds 2722 tokens of rules. The hook sends about 104 of
@@ -418,18 +418,20 @@ to clear the checker.
 Each value is `off`, `lite`, `full` or `ultra`. A missing file means `full` for
 both. ASD-STE100 has no level, because a file is durable or it is not.
 
-The prose level sets a word budget:
+The prose level sets a word budget for the chat reply:
 
-| Prose level | Chat reply | Last message of a task | Subagent report, no cap in the brief |
-|---|---|---|---|
-| `lite` | no number | no number | no number |
-| `full` | under 150 words | under 250 words | 200 words |
-| `ultra` | under 80 words | under 150 words | 120 words |
+| Prose level | Chat reply | Last message of a task |
+|---|---|---|
+| `lite` | no number | no number |
+| `full` | under 150 words | under 250 words |
+| `ultra` | under 80 words | under 150 words |
 
 At `ultra`, the rule also asks for fragments only, with one line for each fact.
 A budget cuts words and never facts. The rule tells the agent to keep every
 finding, number, contradiction, risk and open question. If the facts need more
-words than the budget, the agent goes over the budget. The code layer reads `off` only. Its other three levels
+words than the budget, the agent goes over the budget.
+
+A subagent report has no budget at any level. The code layer reads `off` only. Its other three levels
 send the same text.
 
 ## The brief sets the length of a report
@@ -440,15 +442,15 @@ median length of 639 words. A brief set a word cap for 86 of them, and the
 subagent filled a median 96 percent of that cap. The main thread chose those
 caps itself, and most of them were 400 or 900 words.
 
-The hook therefore sends the main thread a `DELEGATE` rule. Each brief names a
-report shape and a cap at the subagent budget of the level. The brief also says
-that the cap cuts words and never facts. The subagent rule uses the same budget
-when the brief sets no cap.
+A cap of 200 words shortened the report, but it lost facts. Two tests on
+2026-11-20 asked the same question. Each capped report omitted facts that the
+subagent had read in the code. One fact was the place where the code disagreed
+with its doc. A rule to keep every fact did not stop the loss.
 
-A cap alone made a subagent drop a finding. In one test on 2026-11-20, a capped
-report kept the wording of the doc and lost the place where the code disagreed
-with it. The rule against a lost fact therefore reaches every level and both
-surfaces.
+The hook therefore sends the main thread a `DELEGATE` rule with no number. Each
+brief names a report shape, such as `path:line — fact` rows, and sets no word
+cap. The subagent rule asks for the result first, one row for each fact, and no
+narration or recap. The shape removes the filler, and every fact stays.
 
 ## It works beside caveman and ponytail
 
