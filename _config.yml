@@ -1,0 +1,4 @@
+# The jekyll-seo-tag plugin writes this value as a google-site-verification meta tag.
+# Google Search Console reads the tag to verify the GitHub Pages site.
+webmaster_verifications:
+  google: bK7uHDQKQGm14NXMLMbN55qNdU0XyRUILEJ7dp73sYg
