@@ -56,9 +56,36 @@ Each value is `off`, `lite`, `full` or `ultra`. A missing file means `full` for
 both. **ASD-STE100 has no level.** A file is durable or it is not, so the
 artifact rule is always on.
 
+The prose level sets a word budget:
+
+| Prose level | Chat reply | Last message of a task | Subagent report, no cap in the brief |
+|---|---|---|---|
+| `lite` | no number | no number | no number |
+| `full` | under 150 words | under 250 words | 200 words |
+| `ultra` | under 80 words | under 150 words | 120 words |
+
+At `ultra`, the rule also asks for fragments only, with one line for each fact.
+The rule calls each budget a ceiling and not a target, because an agent fills
+the number that it gets. The code layer reads `off` only. Its other three levels
+send the same text.
+
 To change a level, edit that file. Write the value the user asked for, then
 tell the user that the change reaches the next session, because a hook loads at
 session start.
+
+
+## The brief sets the length of a report
+
+A style rule removes the preamble and the recap. It does not shorten a report
+much. On the machine of the author, 139 subagent reports in seven days had a
+median length of 639 words. A brief set a word cap for 86 of them, and the
+subagent filled a median 96 percent of that cap. The main thread chose those
+caps itself, and most of them were 400 or 900 words.
+
+The hook therefore sends the main thread a `DELEGATE` rule. Each brief names a
+report shape and a cap at the subagent budget of the level. A higher cap needs
+a reason in the brief. The subagent rule uses the same budget when the brief
+sets no cap.
 
 ## What the hook does not send
 
@@ -95,9 +122,12 @@ the whole session.
 
 | Event | Three sources | One hook | Saved |
 |---|---|---|---|
-| `SessionStart` | ~2103 tokens | ~564 tokens | 73% |
-| `SubagentStart`, each agent | ~1749 tokens | ~541 tokens | 69% |
-| `UserPromptSubmit`, each turn | ~50 tokens | ~16 tokens | 68% |
+| `SessionStart` | ~2103 tokens | ~811 tokens | 61% |
+| `SubagentStart`, each writing agent | ~1749 tokens | ~669 tokens | 62% |
+| `SubagentStart`, each read-only agent | ~1749 tokens | ~176 tokens | 90% |
+| `UserPromptSubmit`, each turn | ~50 tokens | ~25 tokens | 50% |
+
+The figures are for the `full` level.
 
 The separate blocks each spent tokens on the boundary with the other two. One
 router states that boundary once.

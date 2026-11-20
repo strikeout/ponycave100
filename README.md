@@ -116,14 +116,15 @@ The three also disagree, so a blend of them is wrong. ASD-STE100 needs the
 articles and a complete sentence, and the terse prose rule drops both. A merge
 must therefore name the surface before it gives a rule.
 
-This plugin names the boundary once, so it costs about 70 percent less.
+This plugin names the boundary once, so it costs about 60 percent less. The
+figures are for the `full` level.
 
 | Event | Three sources | One hook | Saved |
 |---|---|---|---|
-| `SessionStart` | ~2103 tokens | ~669 tokens | 68% |
-| `SubagentStart`, each writing agent | ~1749 tokens | ~646 tokens | 63% |
-| `SubagentStart`, each read-only agent | ~1749 tokens | ~153 tokens | 91% |
-| `UserPromptSubmit`, each turn | ~50 tokens | ~16 tokens | 68% |
+| `SessionStart` | ~2103 tokens | ~811 tokens | 61% |
+| `SubagentStart`, each writing agent | ~1749 tokens | ~669 tokens | 62% |
+| `SubagentStart`, each read-only agent | ~1749 tokens | ~176 tokens | 90% |
+| `UserPromptSubmit`, each turn | ~50 tokens | ~25 tokens | 50% |
 
 A read-only agent writes no file, so it receives the prose rule alone. The
 `no-ai-slop` skill holds 2722 tokens of rules. The hook sends about 104 of
@@ -416,6 +417,32 @@ to clear the checker.
 
 Each value is `off`, `lite`, `full` or `ultra`. A missing file means `full` for
 both. ASD-STE100 has no level, because a file is durable or it is not.
+
+The prose level sets a word budget:
+
+| Prose level | Chat reply | Last message of a task | Subagent report, no cap in the brief |
+|---|---|---|---|
+| `lite` | no number | no number | no number |
+| `full` | under 150 words | under 250 words | 200 words |
+| `ultra` | under 80 words | under 150 words | 120 words |
+
+At `ultra`, the rule also asks for fragments only, with one line for each fact.
+The rule calls each budget a ceiling and not a target, because an agent fills
+the number that it gets. The code layer reads `off` only. Its other three levels
+send the same text.
+
+## The brief sets the length of a report
+
+A style rule removes the preamble and the recap. It does not shorten a report
+much. On the machine of the author, 139 subagent reports in seven days had a
+median length of 639 words. A brief set a word cap for 86 of them, and the
+subagent filled a median 96 percent of that cap. The main thread chose those
+caps itself, and most of them were 400 or 900 words.
+
+The hook therefore sends the main thread a `DELEGATE` rule. Each brief names a
+report shape and a cap at the subagent budget of the level. A higher cap needs
+a reason in the brief. The subagent rule uses the same budget when the brief
+sets no cap.
 
 ## It works beside caveman and ponytail
 
