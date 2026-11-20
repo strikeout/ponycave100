@@ -118,23 +118,30 @@ const BUDGET = {
 
 // A subagent fills the word cap of its brief, so the brief controls the length
 // of the report. The main thread gets a rule for the brief for that reason.
+// A budget must never cost a fact. KEEP says so in each surface and at each
+// level, because a cap alone made a subagent drop a finding.
+const KEEP = `A word budget cuts words, never facts. Keep every finding, number,
+contradiction, risk and open question. If the facts need more words than the
+budget, go over the budget.`
+
 function prose(kind, level) {
   const b = BUDGET[level]
   const fragments = level === 'ultra' ? 'Fragments only, one line for each fact.' : 'Fragments are fine.'
   if (kind === 'subagent') {
     const budget = b
-      ? `\nBudget: the cap in your brief, or ${b.agent} words if the brief sets none.
-A cap is a ceiling, not a target.`
+      ? `\nBudget: the cap in your brief, or ${b.agent} words if the brief sets none.`
       : ''
     return `PROSE — your report back. An orchestrator reads it, not a human. Terse.
 Drop articles, filler, pleasantries, hedging. ${fragments} Give the result
 first, then one row for each fact, such as \`path:line — fact\`. Give no plan
-narration, no restatement of the task and no closing summary. Keep the user's
-language. Never announce this style.${budget}`
+narration, no restatement of the task and no closing summary. Write the shortest
+version that loses no fact. Keep the user's language. Never announce this
+style.${budget}
+${KEEP}`
   }
   const budget = b
     ? `\nBudget: a reply stays under ${b.reply} words, and the last message of a task
-under ${b.final}, unless the user asks for detail. A budget is a ceiling, not a target.`
+under ${b.final}.`
     : ''
   const cap = b ? ` and a cap of ${b.agent} words` : ' and a word cap'
   return `PROSE — your chat reply. Terse.
@@ -144,11 +151,12 @@ Write the shortest version that loses no fact. Skip what nobody asked for.
 Keep the user's language. Never announce this style, a skill, a plan or a step.
 The last message of a task holds the result and what the user must act on. It
 is never a log of the steps.${budget}
+${KEEP}
 
 DELEGATE — a subagent fills the cap of its brief, so the brief sets the length
 of its report. Give each brief a report shape, such as \`path:line — fact\`
-rows,${cap}. Go above the cap only for a reason that the brief
-states. Ask only for what you will read.`
+rows,${cap}. Write in the brief that the cap cuts words, never facts. Ask only
+for what you will read.`
 }
 
 function artifact() {

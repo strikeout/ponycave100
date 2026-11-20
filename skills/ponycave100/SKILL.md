@@ -65,8 +65,9 @@ The prose level sets a word budget:
 | `ultra` | under 80 words | under 150 words | 120 words |
 
 At `ultra`, the rule also asks for fragments only, with one line for each fact.
-The rule calls each budget a ceiling and not a target, because an agent fills
-the number that it gets. The code layer reads `off` only. Its other three levels
+A budget cuts words and never facts. The rule tells the agent to keep every
+finding, number, contradiction, risk and open question. If the facts need more
+words than the budget, the agent goes over the budget. The code layer reads `off` only. Its other three levels
 send the same text.
 
 To change a level, edit that file. Write the value the user asked for, then
@@ -83,9 +84,14 @@ subagent filled a median 96 percent of that cap. The main thread chose those
 caps itself, and most of them were 400 or 900 words.
 
 The hook therefore sends the main thread a `DELEGATE` rule. Each brief names a
-report shape and a cap at the subagent budget of the level. A higher cap needs
-a reason in the brief. The subagent rule uses the same budget when the brief
-sets no cap.
+report shape and a cap at the subagent budget of the level. The brief also says
+that the cap cuts words and never facts. The subagent rule uses the same budget
+when the brief sets no cap.
+
+A cap alone made a subagent drop a finding. In one test on 2026-11-20, a capped
+report kept the wording of the doc and lost the place where the code disagreed
+with it. The rule against a lost fact therefore reaches every level and both
+surfaces.
 
 ## What the hook does not send
 
@@ -122,9 +128,9 @@ the whole session.
 
 | Event | Three sources | One hook | Saved |
 |---|---|---|---|
-| `SessionStart` | ~2103 tokens | ~811 tokens | 61% |
-| `SubagentStart`, each writing agent | ~1749 tokens | ~669 tokens | 62% |
-| `SubagentStart`, each read-only agent | ~1749 tokens | ~176 tokens | 90% |
+| `SessionStart` | ~2103 tokens | ~836 tokens | 60% |
+| `SubagentStart`, each writing agent | ~1749 tokens | ~716 tokens | 59% |
+| `SubagentStart`, each read-only agent | ~1749 tokens | ~223 tokens | 87% |
 | `UserPromptSubmit`, each turn | ~50 tokens | ~25 tokens | 50% |
 
 The figures are for the `full` level.
